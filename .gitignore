@@ -1,0 +1,14 @@
+*-data*
+**/.idea/
+**/.vscode/
+**/backend-env
+**/__pycache__
+**/__pycache__/
+/env
+/__pycache__
+/__pycache__/
+*.pyc
+.coverage
+/image/images/
+
+docker run -it --rm -e PBF_URL=https://download.geofabrik.de/asia/thailand-latest.osm.pbf -e REPLICATION_URL=https://download.geofabrik.de/asia/thailand-updates/ -p 8080:8080 --name nominatim mediagis/nominatim:3.7

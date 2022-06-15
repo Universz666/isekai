@@ -1,23 +1,32 @@
 from utils.dbUtil import database
+import requests
 
 def create_user_student(email, username, fullName, phone, role, approveRole, lineNotify, create_date, school, province, file):
-    query = "INSERT INTO users(email, username, fullName, phone, role, approveRole, lineNotify, create_date) VALUES('{}','{}','{}','{}','{}',{},{},'{}'); INSERT INTO studentInfo(userId, school, province, file) VALUES(LAST_INSERT_ID(),'{}','{}','{}')".format(
+    query = "INSERT INTO users(email, username, fullName, phone, role, approveRole, lineNotify, create_date) VALUES('{}','{}','{}','{}','{}',{},'{}','{}'); INSERT INTO studentInfo(userId, school, province, file) VALUES(LAST_INSERT_ID(),'{}','{}','{}')".format(
         email, username, fullName, phone, role, approveRole, lineNotify, create_date, school, province, file
     )
     return database.execute(query)
 
 def create_user_teacher(email, username, fullName, phone, role, approveRole, lineNotify, create_date, faculty, majors, description):
-    query = "INSERT INTO users(email, username, fullName, phone, role, approveRole, lineNotify, create_date) VALUES('{}','{}','{}','{}','{}',{},{},'{}'); INSERT INTO teacherInfo(userId, faculty, majors, description) VALUES(LAST_INSERT_ID(),'{}','{}','{}')".format(
+    query = "INSERT INTO users(email, username, fullName, phone, role, approveRole, lineNotify, create_date) VALUES('{}','{}','{}','{}','{}',{},'{}','{}'); INSERT INTO teacherInfo(userId, faculty, majors, description) VALUES(LAST_INSERT_ID(),'{}','{}','{}')".format(
         email, username, fullName, phone, role, approveRole, lineNotify, create_date, faculty, majors, description
     )
     return database.execute(query)
 
+def find_std_byId(id):
+    query = f"SELECT * FROM users LEFT JOIN studentInfo ON users.id = studentInfo.userId WHERE users.id = {id}"
+    return database.fetch_one(query)
+
+def find_teacher_byId(id):
+    query = f"SELECT * FROM users LEFT JOIN teacherInfo ON users.id = teacherInfo.userId WHERE users.id = {id}"
+    return database.fetch_one(query)
+
 def update_user_student(email, username, fullName, phone, role, approveRole, lineNotify, school, province, file, id):
-    query = f"UPDATE users LEFT JOIN studentInfo ON users.id = studentInfo.userId SET email='{email}', username='{username}', fullName='{fullName}', phone='{phone}', role='{role}', approveRole={approveRole}, lineNotify={lineNotify}, school='{school}', province='{province}', file='{file}' WHERE users.id = {id}"
+    query = f"UPDATE users LEFT JOIN studentInfo ON users.id = studentInfo.userId SET email='{email}', username='{username}', fullName='{fullName}', phone='{phone}', role='{role}', approveRole={approveRole}, lineNotify='{lineNotify}', school='{school}', province='{province}', file='{file}' WHERE users.id = {id}"
     return database.execute(query)
 
-def update_user_teacher(email, username, fullName, phone, role, approveRole, lineNotify,  faculty, majors, description, id):
-    query = f"UPDATE users LEFT JOIN studentInfo ON users.id = studentInfo.userId SET email='{email}', username='{username}', fullName='{fullName}', phone='{phone}', role='{role}', approveRole={approveRole}, lineNotify={lineNotify}, faculty='{faculty}', majors='{majors}', description='{description}' WHERE users.id = {id}"
+def update_user_teacher(email, username, fullName, phone, role, approveRole, lineNotify, faculty, majors, description, id):
+    query = f"UPDATE users LEFT JOIN teacherInfo ON users.id = teacherInfo.userId SET email='{email}', username='{username}', fullName='{fullName}', phone='{phone}', role='{role}', approveRole={approveRole}, lineNotify='{lineNotify}', faculty='{faculty}', majors='{majors}', description='{description}' WHERE users.id = {id}"
     return database.execute(query)
 
 def del_user_student(id):
@@ -28,6 +37,9 @@ def del_user_teacher(id):
     query = f"DELETE teacherInfo, users FROM teacherInfo INNER JOIN users ON users.id = teacherInfo.userId WHERE teacherInfo.userId = {id}"
     return database.execute(query)
 
+def update_role(id, role):
+    query = f"UPDATE users SET role = '{role}' WHERE id = {id}"
+    return database.execute(query)
 
 
 def find_user_byEmail(email:str):
@@ -48,3 +60,18 @@ def find_exist_admin_email(email:str):
 def get_all_users():
     query = "SELECT * FROM users"
     return database.fetch_all(query)
+
+def token_lineNotify(id, lineNotify):
+    query = f"UPDATE users SET lineNotify='{lineNotify}' WHERE id = {id}"
+    return database.execute(query)
+
+def alert_user(id):
+    query = "SELECT * FROM users WHERE id=:id"
+    return database.fetch_one(query, values={'id': id})
+    # re = await database.fetch_one(query, values={'id': id})
+    # if re:
+    #     url = 'https://notify-api.line.me/api/notify'
+    #     headers = {'content-type': 'application/x-www-form-urlencoded',
+    #                 'Authorization': 'Bearer '+re['lineNotify']}
+    #     msg = re['username']+ ' เริ่มแล้ว'
+    #     requests.post(url, headers=headers, data={'message': msg})

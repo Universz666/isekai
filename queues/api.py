@@ -3,8 +3,10 @@ from fastapi import HTTPException, status, Form, WebSocket
 from fastapi_utils.cbv import cbv
 from fastapi_utils.inferring_router import InferringRouter
 from pydantic import BaseModel
+import requests
 
 from queues import service as service
+from users import service as user_service
 
 queues_router = InferringRouter()
 
@@ -18,7 +20,14 @@ class userJoin(BaseModel):
 class resultStudent(BaseModel):
     studentId: int
     result: str
-    note: str
+    note: str = None
+    updateBy: int
+    eventId: int = None
+
+class updateStatusId(BaseModel):
+    userId: int
+    studentId: int = None
+    userStatus: str
 
 
 @cbv(queues_router)
@@ -60,47 +69,22 @@ class QueueApi:
                 "detail": "User is Joined"
             }
 
-    # @queues_router.get('/join-event/{eventId}/{userId}')
-    # async def join_event(self, eventId:int, userId:int, request: Request):
-    #     userStatus = "waiting"
-    #     client_host = request.client.host
-    #     result = await service.find_Id_exist(eventId, userId)
-    #     if not result:
-    #         await service.join_event(eventId, userId, userStatus)
-    #         role = "student"
-    #         alluserSTD = await service.get_all_queue_by_eventId(eventId, role)
-    #         total_queue = len(alluserSTD)
-    #         for i in range(total_queue):
-    #             if userId == alluserSTD[i]['userId']:
-    #                 your_queue = i+1
-
-    #         return {
-    #             "client_host": client_host,
-    #             "detail": "User Joined Successfully",
-    #             "total_queue": total_queue,
-    #             "your_queue": your_queue
-    #         }
-
-    #     else:
-    #         role = "student"
-    #         alluserSTD = await service.get_all_queue_by_eventId(eventId, role)
-    #         total_queue = len(alluserSTD)
-    #         for i in range(total_queue):
-    #             if userId == alluserSTD[i]['userId']:
-    #                 your_queue = i+1
-    #         return {
-    #             "client_host": client_host,
-    #             "detail": "User is Joined",
-    #             "total_queue": total_queue,
-    #             "your_queue": your_queue
-    #         }
-
     @queues_router.post('find-event/')
     async def find_event_user_ById(self, eventId: int, userId: int):
         result = await service.find_Id_exist(eventId, userId)
         return {
             "result": result
         }
+
+    @queues_router.get('/getResult-interview')
+    async def get_result_interview(self, eventId: int):
+        result = await service.get_result_Interview(eventId, role="student")
+        return {
+            "status_code": status.HTTP_200_OK,
+            "detail": result
+        }
+
+
 
     @queues_router.get('student-queue/{eventId}/{userId}')
     async def student_queue(self, id: int, userId: int):
@@ -127,9 +111,20 @@ class QueueApi:
         }
 
     @queues_router.post('/update-userStatus', status_code=200)
-    async def update_userStatus_interview(self, userId: int = Form(...)):
-        userStatus = "interviewing"
-        await service.update_userStatus_interview(userId, userStatus)
+    async def update_userStatus(self, updateStatusId: updateStatusId):
+        updateStatusBy = updateStatusId.userId
+        await service.update_userStatus_interview(updateStatusId.userId, updateStatusId.userStatus, updateStatusBy)
+        await service.update_userStatus_interview(updateStatusId.studentId, updateStatusId.userStatus, updateStatusBy)
+        return {
+            "status_code": status.HTTP_200_OK,
+            "detail": "Status user Update Successfully"
+        }
+    
+    @queues_router.post('/update-teacherStatus', status_code=200)
+    async def update_userStatus_waiting(self, updateStatusId: updateStatusId):
+        userStatus = "waiting"
+        updateStatusBy = updateStatusId.userId = None
+        await service.update_userStatus_interview(updateStatusId.userId, userStatus, updateStatusBy)
         return {
             "status_code": status.HTTP_200_OK,
             "detail": "Status user Update Successfully"
@@ -138,10 +133,42 @@ class QueueApi:
     @queues_router.post('/updateResult-student', status_code=200)
     async def update_result_student(self, resultStudent: resultStudent):
         userStatus = "success"
-        await service.update_result_userstatus(resultStudent.studentId, userStatus, resultStudent.result, resultStudent.note)
+        await service.update_result_userstatus(resultStudent.studentId, userStatus, resultStudent.result, resultStudent.note, resultStudent.updateBy)
+
+        updateStatus = "waiting"
+        await service.update_userStatus_interview(resultStudent.updateBy, updateStatus, resultStudent.updateBy)
+
+        #Line Notify 
+        std_Role = "student"
+        eventId = resultStudent.eventId
+
+        waiting_Status = "waiting"
+        waiting_std = await service.get_current_queue(std_Role, waiting_Status, eventId)
+        
+        if len(waiting_std) >= 3:
+            remind = await user_service.alert_user(waiting_std[2]["userId"])
+            if remind['lineNotify']:
+                url = 'https://notify-api.line.me/api/notify'
+                headers = {'content-type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Bearer '+remind['lineNotify']}
+                msg = 'คุณ ' + remind['username']+' '+ 'ใกล้ถึงคิวของคุณแล้วกรุณาเตรียมพร้อม !!!'
+                requests.post(url, headers=headers, data={'message': msg})
+
+        elif len(waiting_std) != 0 :
+            alert = await user_service.alert_user(waiting_std[0]["userId"])
+            if alert['lineNotify']:
+                url = 'https://notify-api.line.me/api/notify'
+                headers = {'content-type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Bearer '+alert['lineNotify']}
+                msg = 'คุณ ' + alert['username']+' '+ 'ถึงคิวของคุณแล้ว ขอให้โชคดี ==> Goodluck <3'
+                requests.post(url, headers=headers, data={'message': msg})
+                    
+
+
+
         return {
             "status_code": status.HTTP_200_OK,
-            "detail": "Student interview Successfully"
+            "detail": "Successfully"
         }
 
     @queues_router.post('delete-user-from-event')

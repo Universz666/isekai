@@ -1,14 +1,15 @@
 from datetime import datetime
 from typing import Optional
+from aiohttp import request
 from fastapi import Form, HTTPException, status, UploadFile, File
 from fastapi_utils.cbv import cbv
 from fastapi_utils.inferring_router import InferringRouter
 from pydantic import BaseModel
+import requests
 
 from users import service as service
 from utils import cryptoUtil
 
-import uuid
 
 user_router = InferringRouter()
 FILEDIR = "./portfoliofile/portfiles/"
@@ -21,7 +22,7 @@ class usersModel(BaseModel):
     phone: str
     role: str
     approve: bool = 0
-    lineNotify: bool = 0
+    lineNotify: Optional[str] = None
     create_date = datetime.now()
 
     # if role = student
@@ -42,7 +43,7 @@ class updateUsersModel(BaseModel):
     phone: str
     role: str
     approve: bool = 0
-    lineNotify: bool = 0
+    lineNotify: Optional[str] = None
     # if role = student
     school: Optional[str] = None
     province: Optional[str] = None
@@ -60,6 +61,15 @@ class AdminUser(BaseModel):
     password: str
 
 
+class LineToken(BaseModel):
+    id:int
+    lineNotify:str
+
+
+def add(id):
+    url = f"http://127.0.0.1:8000/api/v1/alert?id={id}"
+    requests.post(url)
+
 @cbv(user_router)
 class UsersApi:
     @user_router.post('/loginUser')
@@ -72,21 +82,6 @@ class UsersApi:
             "usersData":result
         }
 
-
-    @user_router.post('/register-students/uploadfile', status_code=201)
-    async def student_uploadfile(self, file: UploadFile = File(...)):
-        txtfile = file.filename
-        txtfile = txtfile.split(".")
-        uuids = uuid.uuid4()
-        file.filename = f"{uuids}.{txtfile[-1]}"
-        contents = await file.read()
-
-        with open(f"{FILEDIR}{file.filename}", "wb") as f:
-            f.write(contents)
-
-        return {
-            "portfilename": file.filename
-        }
 
     @user_router.post('/register', status_code=201)
     async def register_user(self, usersModel: usersModel):
@@ -158,11 +153,25 @@ class UsersApi:
             "role":result[5]
         }
 
+    @user_router.get('/userInfo-role')
+    async def get_User_Info(self, id:int, role:str):
+        if role == "teacher":
+            result = await service.find_teacher_byId(id)
+            return {
+                "result":result
+            }
+        
+        elif role == "student":
+            result = await service.find_std_byId(id)
+            return {
+                "result":result
+            }
+
 
     @user_router.post('/update-user')
     async def update_user(self, updateUsersModel: updateUsersModel):
         if updateUsersModel.role == "student":
-            await service.update_user_student(updateUsersModel.email,
+            result = await service.update_user_student(updateUsersModel.email,
                                               updateUsersModel.username,
                                               updateUsersModel.fullName,
                                               updateUsersModel.phone,
@@ -175,7 +184,7 @@ class UsersApi:
                                               updateUsersModel.id
                                               )
         if updateUsersModel.role == "teacher":
-            await service.update_user_teacher(updateUsersModel.email,
+            result = await service.update_user_teacher(updateUsersModel.email,
                                               updateUsersModel.username,
                                               updateUsersModel.fullName,
                                               updateUsersModel.phone,
@@ -190,10 +199,11 @@ class UsersApi:
 
         return {
             "status_code": status.HTTP_200_OK,
-            "detail": "User Updated successfully"
+            "detail": "User Updated successfully",
+            "result": result
         }
 
-    @user_router.post('delete_user')
+    @user_router.post('/delete_user')
     async def delete__user(self, role: str = Form(...), id: int = Form(...)):
         if role == "student":
             await service.del_user_student(id)
@@ -206,6 +216,15 @@ class UsersApi:
             "detail": "User Deleted successfully"
         }
 
+    @user_router.post('/updata_role')
+    async def update_Role(self, id:int = Form(...) , role: str  = Form(...)):
+        await service.update_role(id, role)
+
+        return {
+            "status_code": status.HTTP_200_OK,
+            "detail": "User Update Role successfully"
+        }
+
     @user_router.get('/getAllUser')
     async def get_all_user(self):
         result = await service.get_all_users()
@@ -213,3 +232,12 @@ class UsersApi:
             "status_code": status.HTTP_200_OK,
             "detail": result
         }
+
+    @user_router.post('/line_notify')
+    async def line_notify(self, LineToken:LineToken):
+        await service.token_lineNotify(LineToken.id, LineToken.lineNotify)
+        return {
+            "status_code": status.HTTP_200_OK,
+            "detail": 'sync Line Notify successfully'
+        }
+

@@ -1,9 +1,10 @@
+from multiprocessing.connection import wait
+from tracemalloc import stop
 from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
 import uvicorn
 from datetime import datetime
-import json
+
 
 
 from utils.dbUtil import database
@@ -14,6 +15,9 @@ from users.api import user_router
 from events.api import event_router
 
 from portfoliofile.api import files_router
+
+from queues import service as queue_service
+from users import service as user_service
 
 
 app = FastAPI(
@@ -34,27 +38,6 @@ app.add_middleware(
 )
 
 
-# class ConnectionManager:
-#     def __init__(self):
-#         self.active_connections: List[WebSocket] = []
-
-#     async def connect(self, websocket: WebSocket):
-#         await websocket.accept()
-#         self.active_connections.append(websocket)
-
-#     def disconnect(self, websocket: WebSocket):
-#         self.active_connections.remove(websocket)
-
-#     async def send_personal_message(self, message: str, websocket: WebSocket):
-#         await websocket.send_text(message)
-
-#     async def broadcast(self, message: str):
-#         for connection in self.active_connections:
-#             await connection.send_text(message)
-
-
-# manager = ConnectionManager()
-
 
 # ADD ROUTERS
 
@@ -65,6 +48,7 @@ v1_router.include_router(event_router, tags=["Events"])
 
 v1_router.include_router(files_router, tags=["Files"])
 app.include_router(v1_router)
+
 
 
 @app.on_event('startup')
@@ -79,32 +63,128 @@ async def shutdown():
     print('DB is Disconnect!')
 
 
+
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
     print('Accepting client connection...')
     await websocket.accept()
     while True:
-        data = await websocket.receive_text()
-        print(data)
-        await websocket.send_text(f"Message text was : {data}")
+        clientData = await websocket.receive_json()
+        # print(userData["userId"])
+
+        #All Queue
+        eventId = clientData["eventId"]
+        userId = clientData["userId"]
+
+        role = "student"
+        allstd_user = await queue_service.get_all_queue_by_eventId(eventId, role)
+        total_queue = len(allstd_user)
+        
+
+        #studen Queue
+        std_queue = 0
+        for i in range(total_queue):
+            if userId == allstd_user[i]["userId"]:
+                std_queue = std_queue + (i+1)
+                break
 
 
-# @app.websocket("/ws/{client_id}")
-# async def websocket_endpoint(websocket: WebSocket, client_id: int):
-#     await manager.connect(websocket)
-#     now = datetime.now()
-#     current_time = now.strftime("%H:%M")
-#     try:
-#         while True:
-#             data = await websocket.receive_text()
-#             # await manager.send_personal_message(f"You wrote: {data}", websocket)
-#             message = {"time":current_time,"clientId":client_id,"message":data}
-#             await manager.broadcast(json.dumps(message))
+        #current Queue
+        userStatus = "interviewing"
+        current_std = await queue_service.get_current_queue(role, userStatus, eventId)
+        current_queue = 0
+        if len(current_std) != 0:
+            for i in range(total_queue):
+                if current_std[-1]["userId"] == allstd_user[i]["userId"]:
+                    queue = i+1
+                    current_queue = current_queue+queue
+        
 
-#     except WebSocketDisconnect:
-#         manager.disconnect(websocket)
-#         message = {"time":current_time,"clientId":client_id,"message":"Offline"}
-#         await manager.broadcast(json.dumps(message))
+
+        #Check Status
+        userData = await queue_service.get_userData(eventId, userId)
+        clientStatus = userData[0]["userStatus"]
+  
+        if clientStatus == "waiting":
+            data_queue = {"total_queue":total_queue, "current_queue":current_queue,"std_queue":std_queue,"status":clientStatus}
+            await websocket.send_json(data_queue)
+        
+        elif clientStatus == "interviewing":
+            teacherId = userData[0]["updateStatusBy"]
+            teacherData = await user_service.find_teacher_byId(teacherId)
+      
+            data_queue = {"total_queue":total_queue,
+                         "current_queue":current_queue,
+                         "std_queue":std_queue,
+                         "status":clientStatus,
+                         "teacher_Name":teacherData["fullName"],
+                         "description":teacherData["description"]}
+            await websocket.send_json(data_queue)
+            
+        
+        elif clientStatus == "success":
+            data_queue = {"total_queue":total_queue, "current_queue":current_queue,"std_queue":std_queue,"status":clientStatus, "message":"สัมภาษณ์เสร็จแล้ว"}
+            await websocket.send_json(data_queue)
+                
+
+@app.websocket('/ws/matchup')
+async def websocket_matchup(websocket: WebSocket):
+    print('Accepting')
+    await websocket.accept()
+    while True:
+        cleintData = await websocket.receive_json()
+        
+        #Get all std
+        eventId = cleintData["eventId"]
+        role = "student"
+        allstd_user = await queue_service.get_all_queue_by_eventId(eventId, role)
+        total_std = len(allstd_user)
+        
+        #Get all std status = waiting
+        userStatus = "waiting"
+        std_waiting = await queue_service.get_current_queue(role, userStatus, eventId)
+        std_curren_queue = 0
+        if len(std_waiting) != 0:
+            for i in range(total_std):
+                if std_waiting[0]["userId"] == allstd_user[i]["userId"]:
+                    std_curren_queue = std_curren_queue + (i+1)
+                    break
+            
+        #Teacher and Student change status
+        # interviewing = "interviewing"
+        teacherId = cleintData["userId"]
+        teacherStatus = await queue_service.get_userData(eventId, teacherId)
+
+        if len(std_waiting) != 0:
+            std_data = await user_service.find_std_byId(std_waiting[0]["userId"])
+            stdJSON = {"stdQueue":std_curren_queue,
+                        "stdId":std_waiting[0]["userId"],
+                        "fullName":std_waiting[0]["fullName"],
+                        "phoneNumber":std_waiting[0]["phone"],
+                        "school":std_data["school"],
+                        "province":std_data["province"],
+                        "file":std_data["file"]}
+            if teacherStatus[0]["userStatus"] == "waiting":
+                await websocket.send_json(stdJSON)
+            
+            else:
+                teacherStatus = {"teacherStatus":teacherStatus[0]["userStatus"]}
+                await websocket.send_json(teacherStatus)
+
+        else :
+            outOfqueue = {"outofqueue" : "ไม่มีคิว"}
+            await websocket.send_json(outOfqueue)        
+    
+
+            # await queue_service.update_userStatus_interview(teacherId, interviewing)
+            # await queue_service.update_userStatus_interview(std_waiting[0]["userId"], interviewing)
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

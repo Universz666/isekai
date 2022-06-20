@@ -60,6 +60,10 @@ class AdminUser(BaseModel):
     email: str
     password: str
 
+class delModel(BaseModel):
+    id: int
+    role: str
+
 
 class LineToken(BaseModel):
     id:int
@@ -204,12 +208,12 @@ class UsersApi:
         }
 
     @user_router.post('/delete_user')
-    async def delete__user(self, role: str = Form(...), id: int = Form(...)):
-        if role == "student":
-            await service.del_user_student(id)
+    async def delete__user(self, delModel:delModel):
+        if delModel.role == "student":
+            await service.del_user_student(delModel.id)
 
-        if role == "teacher":
-            await service.del_user_teacher(id)
+        if delModel.role == "teacher":
+            await service.del_user_teacher(delModel.id)
 
         return {
             "status_code": status.HTTP_200_OK,
@@ -217,8 +221,8 @@ class UsersApi:
         }
 
     @user_router.post('/updata_role')
-    async def update_Role(self, id:int = Form(...) , role: str  = Form(...)):
-        await service.update_role(id, role)
+    async def update_Role(self, delModel:delModel):
+        await service.update_role(delModel.id, delModel.role)
 
         return {
             "status_code": status.HTTP_200_OK,

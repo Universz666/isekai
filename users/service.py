@@ -1,5 +1,4 @@
 from utils.dbUtil import database
-import requests
 
 def create_user_student(email, username, fullName, phone, role, approveRole, lineNotify, create_date, school, province, file):
     query = "INSERT INTO users(email, username, fullName, phone, role, approveRole, lineNotify, create_date) VALUES('{}','{}','{}','{}','{}',{},'{}','{}'); INSERT INTO studentInfo(userId, school, province, file) VALUES(LAST_INSERT_ID(),'{}','{}','{}')".format(
@@ -30,11 +29,11 @@ def update_user_teacher(email, username, fullName, phone, role, approveRole, lin
     return database.execute(query)
 
 def del_user_student(id):
-    query = f"DELETE studentInfo, users FROM studentInfo INNER JOIN users ON users.id = studentInfo.userId WHERE studentInfo.userId = {id}"
+    query = f"SET FOREIGN_KEY_CHECKS = 0; DELETE studentInfo, users, joinEvent FROM studentInfo LEFT JOIN users ON users.id = studentInfo.userId LEFT JOIN joinEvent ON joinEvent.userId = users.id WHERE users.id = {id}"
     return database.execute(query)
 
 def del_user_teacher(id):
-    query = f"DELETE teacherInfo, users FROM teacherInfo INNER JOIN users ON users.id = teacherInfo.userId WHERE teacherInfo.userId = {id}"
+    query = f"SET FOREIGN_KEY_CHECKS = 0; DELETE teacherInfo, users, joinEvent FROM teacherInfo INNER JOIN users ON users.id = teacherInfo.userId LEFT JOIN joinEvent ON joinEvent.userId = users.id WHERE teacherInfo.userId = {id}"
     return database.execute(query)
 
 def update_role(id, role):

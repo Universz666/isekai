@@ -1,0 +1,204 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt&display=swap');
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family:  'Prompt', sans-serif !important;
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+.site-card-border-less-wrapper {
+  min-width: calc(100vh - 75px);
+  padding: 30px;
+  background: #F6F6F6;
+}
+
+.site-layout-content {
+  min-height: 280px;
+  padding: 24px;
+  background: rgb(255, 255, 255);
+}
+#components-layout-demo-top .logo {
+  float: left;
+  width: 120px;
+  height: 31px;
+  margin: 16px 24px 16px 0;
+  background: rgba(255, 255, 255, 0.3);
+}
+.ant-row-rtl #components-layout-demo-top .logo {
+  float: right;
+  margin: 16px 0 16px 24px;
+}
+
+.layouts {
+  background: #0B3B7D;
+}
+
+.sidebar {
+  height: 100vh;
+}
+
+.contentsHome{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.registerCompo{
+  justify-content: center;
+  margin: 20;
+}
+
+.contents{
+  padding: 0px 50px;
+}
+
+.site-content{
+  min-height: 280px;
+  padding: 15px 100px 15px 100px;
+  background: #fff;
+}
+
+.ant-btn-primary{
+  color: #fff;
+  background: #E7B400;
+  border-color: #E7B400;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #ffffff !important;
+  background-color: #E7B400 !important;
+  border-color: #E7B400 !important;
+}
+
+.btn-login-google{
+  color: #000;
+  background: #F6F6F6;
+  border-color: #F6F6F6;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #000 !important;
+  background-color: #F6F6F6 !important;
+  border-color: #1a1a1a !important;
+}
+
+.btn-login{
+  color: #fff;
+  background: #0B3B7D;
+  border-color: #0B3B7D;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #fff !important;
+  background-color: #0B3B7D !important;
+  border-color: #0B3B7D !important;
+}
+
+.btn-line{
+  color: #fff;
+  background: #6BD716;
+  border-color: #6BD716;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #fff !important;
+  background-color: #6BD716 !important;
+  border-color: #6BD716 !important;
+}
+
+.btn-line-success{
+  color: #6BD716;
+  border-color: #6BD716;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #6BD716 !important;
+  border-color: #6BD716 !important;
+}
+
+.input-box-login{
+  display: flex;
+  align-items: center;
+  padding: 5px 30px 10px 30px;
+}
+
+.font-regist{
+  font-size: 20px;
+  color: #4B4B4B;
+  padding-right: 10px;
+}
+
+.input-regist{
+  align-items:flex-start;
+}
+
+
+.card-box-q{
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  color: #fff !important;
+  text-align: center;
+}
+
+
+
+.txt-q{
+  font-size: 48px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.btn-teacher-save{
+    color: #fff;
+    background: #4CAF50;
+    border-color: #4CAF50;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+    color: #fff !important;
+    background-color: #4CAF50 !important;
+    border-color: #4CAF50 !important;
+}
+
+.btn-teacher-no{
+  color: #4B4B4B;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #4B4B4B !important;
+}
+
+.card-event-compo{
+  text-align: center;
+  width: 300px;
+  height: 250px;
+}
+
+.btn-accept{
+  color: #4CAF50;
+  border-color: #4CAF50;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #4CAF50 !important;
+  border-color: #4CAF50 !important;
+}
+
+.btn-decline {
+  color: #af4c4c;
+  border-color: #af4c4c;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #af4c4c !important;
+  border-color: #af4c4c !important;
+}
+
+.btn-disable{
+  color: #4B4B4B;
+  border-color: #4B4B4B;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  color: #4B4B4B !important;
+  border-color: #4B4B4B !important;
+}
